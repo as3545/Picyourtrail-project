@@ -20,9 +20,14 @@ const InquiryForm = ({ packageId, packageTitle, onSuccess }) => {
   const onSubmit = async (data) => {
     setIsSubmitting(true);
     setSubmitStatus(null);
-
+    let phone = data.phone.trim();
+    if (phone.startsWith("0")) {
+      phone = "+91" + phone.slice(1);
+    } else if (!phone.startsWith("+91")) {
+      phone = "+91" + phone;
+    }
     try {
-      await submitInquiry({ ...data, packageId, packageTitle });
+      await submitInquiry({ ...data, phone, packageId, packageTitle });
 
       setSubmitStatus("success");
       reset();
