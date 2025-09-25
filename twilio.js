@@ -2,7 +2,7 @@ const twilio = require("twilio");
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const fromNumber = `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
-const ownerPhone = process.env.TWILIO_OWNER_PHONE_NUMBER;
+const ownerPhone = `whatsapp:${process.env.TWILIO_OWNER_PHONE_NUMBER}`;
 const client = twilio(accountSid, authToken);
 
 /**
@@ -14,7 +14,7 @@ const client = twilio(accountSid, authToken);
 const sendWhatsAppMessage = async (to, message) => {
   const res = await client.messages.create({
     from: fromNumber,
-    to: `whatsapp:${ownerPhone}`,
+    to,
     body: message,
   });
 
