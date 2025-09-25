@@ -2,7 +2,6 @@
 const nodemailer = require("nodemailer");
 const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
-const ownerEmail = process.env.OWNER_EMAIL;
 const transporter = nodemailer.createTransport({
   service: "gmail", // or use SMTP config for production
   auth: {
@@ -21,7 +20,7 @@ const sendEmail = async (to, subject, html) => {
   try {
     const info = await transporter.sendMail({
       from: `"Travel Agency" <${process.env.EMAIL_USER}>`,
-      to: ownerEmail,
+      to,
       subject,
       html,
     });
