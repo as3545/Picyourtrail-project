@@ -9,7 +9,7 @@ const DestinationsPage = () => {
   const { destinations, loading: destinationsLoading, error: destinationsError } = useDestinations()
   const [selectedDestination, setSelectedDestination] = useState('')
   const [destinationStats, setDestinationStats] = useState({})
-  //
+  
   const { 
     packages: destinationPackages, 
     loading: packagesLoading, 
