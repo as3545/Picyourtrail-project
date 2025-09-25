@@ -224,7 +224,49 @@ export const adminAPI = {
   // Dashboard stats
   getStats: () => api.get('/admin/stats', {
     headers: { 'x-admin-token': import.meta.env.VITE_ADMIN_TOKEN }
-  })
+  }),
+
+  // Export functionality
+  exportInquiries: (params = {}, format = 'csv') => {
+    const queryString = new URLSearchParams(params).toString()
+    const url = `/admin/export/inquiries${queryString ? `?${queryString}` : ''}`
+    
+    return fetch(`${import.meta.env.VITE_API_URL || ''}${url}`, {
+      headers: {
+        'x-admin-token': import.meta.env.VITE_ADMIN_TOKEN,
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+      return response.text()
+    })
+  },
+
+  exportPackages: (params = {}, format = 'csv') => {
+    const queryString = new URLSearchParams(params).toString()
+    const url = `/admin/export/packages${queryString ? `?${queryString}` : ''}`
+    
+    return fetch(`${import.meta.env.VITE_API_URL || ''}${url}`, {
+      headers: {
+        'x-admin-token': import.meta.env.VITE_ADMIN_TOKEN,
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+      return response.text()
+    })
+  }
+}
+
+// Utility function to get full image URL
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return null
+  if (imagePath.startsWith('http')) return imagePath
+  return `http://localhost:5000${imagePath}`
 }
 
 export const getFeaturedPackages = async () => {
