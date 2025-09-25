@@ -18,86 +18,6 @@ const client = twilio(accountSid, authToken);
 // POST /api/inquiries
 router.post("/", async (req, res) => {
   try {
-    const { name, email, phone, message, packageTitle } = req.body;
-
-    // 🔹 Send email to owner
-    await sendEmail(
-      process.env.OWNER_EMAIL,
-      `New Inquiry for ${packageTitle}`,
-      `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
-        <h1 style="margin: 0; font-size: 28px;">New Inquiry</h1>
-        <p style="margin: 10px 0 0 0; font-size: 16px;">${packageTitle}</p>
-      </div>
-
-      <div style="padding: 30px; background: #f9f9f9;">
-        <h2 style="color: #333; margin-bottom: 20px;">You’ve received a new inquiry</h2>
-        
-        <p style="color: #666; line-height: 1.6; margin-bottom: 15px;">
-          Here are the details:
-        </p>
-
-        <div style="background: #fff; border: 2px solid #667eea; border-radius: 10px; padding: 20px; margin: 25px 0;">
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Phone:</strong> ${phone}</p>
-          <p><strong>Message:</strong> ${message}</p>
-        </div>
-
-        <div style="text-align: center; margin-top: 30px;">
-          <p style="color: #999; font-size: 12px;">
-            © 2024 Tour Packages. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </div>
-  `
-    );
-
-    // 🔹 Send thank-you email to user
-    await sendEmail(
-      email,
-      "Thank you for your inquiry!",
-      `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
-        <h1 style="margin: 0; font-size: 28px;">Tour Packages</h1>
-        <p style="margin: 10px 0 0 0; font-size: 16px;">Inquiry Received</p>
-      </div>
-
-      <div style="padding: 30px; background: #f9f9f9;">
-        <h2 style="color: #333; margin-bottom: 20px;">Hello ${name},</h2>
-        
-        <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
-          Thank you for your interest in <strong>${packageTitle}</strong>. 
-          We’ve received your request and will get back to you within 24 hours.
-        </p>
-        
-        <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
-          In the meantime, feel free to explore more of our travel packages.
-        </p>
-
-        <div style="text-align: center; margin-top: 30px;">
-          <p style="color: #999; font-size: 12px;">
-            © 2024 Tour Packages. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </div>
-  `
-    );
-
-    res.json({ success: true, message: "Inquiry submitted successfully" });
-  } catch (error) {
-    console.error("❌ Inquiry submission error:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-});
-
-// POST new inquiry
-router.post("/", async (req, res) => {
-  try {
     const { name, email, phone, packageId, message } = req.body;
 
     // 1. Validate required fields
@@ -108,13 +28,14 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 2. Validate that the tour package exists
+    // 2. Validate tour package exists
     const tourPackage = await TourPackage.findById(packageId);
     if (!tourPackage) {
       return res.status(404).json({ error: "Package not found" });
     }
+    const packageTitle = tourPackage.title;
 
-    // 3. Save the new inquiry to the database
+    // 3. Save inquiry to DB
     const newInquiry = new Inquiry({
       name,
       email,
@@ -122,19 +43,75 @@ router.post("/", async (req, res) => {
       packageId,
       message,
     });
-
     const savedInquiry = await newInquiry.save();
-
-    // Populate package details for response
     await savedInquiry.populate("packageId", "title destination");
 
-    // 4. Send WhatsApp messages using a separate try/catch block
+    // 4. Send email notifications
     try {
-      const packageTitle = tourPackage.title;
+      // Owner email
+      await sendEmail(
+        ownerEmail,
+        `New Inquiry for ${packageTitle}`,
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">New Inquiry</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">${packageTitle}</p>
+          </div>
+          <div style="padding: 30px; background: #f9f9f9;">
+            <h2 style="color: #333; margin-bottom: 20px;">You’ve received a new inquiry</h2>
+            <div style="background: #fff; border: 2px solid #667eea; border-radius: 10px; padding: 20px; margin: 25px 0;">
+              <p><strong>Name:</strong> ${name}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Phone:</strong> ${phone}</p>
+              <p><strong>Message:</strong> ${message}</p>
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+              <p style="color: #999; font-size: 12px;">
+                © 2024 Tour Packages. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
+        `
+      );
 
-      // Send confirmation message to the user who submitted the form
+      // User thank-you email
+      await sendEmail(
+        email,
+        "Thank you for your inquiry!",
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
+            <h1 style="margin: 0; font-size: 28px;">Tour Packages</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Inquiry Received</p>
+          </div>
+          <div style="padding: 30px; background: #f9f9f9;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hello ${name},</h2>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
+              Thank you for your interest in <strong>${packageTitle}</strong>. 
+              We’ve received your request and will get back to you within 24 hours.
+            </p>
+            <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
+              In the meantime, feel free to explore more of our travel packages.
+            </p>
+            <div style="text-align: center; margin-top: 30px;">
+              <p style="color: #999; font-size: 12px;">
+                © 2024 Tour Packages. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
+        `
+      );
+    } catch (emailError) {
+      console.error("❌ Email Error:", emailError);
+    }
+
+    // 5. Send WhatsApp notifications
+    try {
+      // User confirmation
       const userConfirmationMessage = `Hello ${name},\n\nThank you for your inquiry about "${packageTitle}". We will get back to you shortly.`;
-
       const userMessage = await client.messages.create({
         body: userConfirmationMessage,
         from: `whatsapp:${twilioWhatsAppNumber}`,
@@ -142,9 +119,8 @@ router.post("/", async (req, res) => {
       });
       console.log("✅ User WhatsApp message sent. SID:", userMessage.sid);
 
-      // Send the full inquiry details to the form owner
+      // Owner notification
       const ownerNotificationMessage = `New Inquiry for "${packageTitle}"\nFrom: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`;
-
       const ownerMessage = await client.messages.create({
         body: ownerNotificationMessage,
         from: `whatsapp:${twilioWhatsAppNumber}`,
@@ -153,25 +129,17 @@ router.post("/", async (req, res) => {
       console.log("✅ Owner WhatsApp message sent. SID:", ownerMessage.sid);
     } catch (twilioError) {
       console.error("❌ Twilio WhatsApp Error:", twilioError.message);
-      console.error("Twilio error code:", twilioError.code);
-      console.error("Twilio error more info:", twilioError.moreInfo);
-
-      // It's a good practice to log the error but still send a success response to the client
-      // since the inquiry was successfully saved to the database.
     }
 
-    // 5. Send success response back to the client
+    // 6. Final response
     res.status(201).json({
-      message:
-        "Inquiry submitted successfully. Check your server console for message status.",
+      success: true,
+      message: "Inquiry submitted successfully",
       inquiry: savedInquiry,
     });
   } catch (error) {
-    console.error("Error creating inquiry:", error);
-    if (error.name === "ValidationError") {
-      return res.status(400).json({ error: error.message });
-    }
-    res.status(500).json({ error: "Failed to submit inquiry" });
+    console.error("❌ Inquiry submission error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
